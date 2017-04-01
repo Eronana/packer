@@ -1,0 +1,3 @@
+[submodule "compressor"]
+	path = compressor
+	url = https://github.com/Eronana/compressor.git
