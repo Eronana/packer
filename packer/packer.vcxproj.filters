@@ -30,6 +30,27 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\compressor\bitstream.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\compressor\compressor.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\compressor\config.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\compressor\huffman.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\compressor\lz77.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\compressor\lzhash.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\compressor\utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PE.h">
@@ -42,6 +63,24 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="packer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\compressor\bitstream.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\compressor\compressor.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\compressor\huffman.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\compressor\lz77.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\compressor\lzhash.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\compressor\utils.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

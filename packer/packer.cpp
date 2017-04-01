@@ -1,5 +1,6 @@
 #include "packer.h"
-
+#include "../compressor/utils.h"
+#include "../compressor/compressor.h"
 
 // new IAT
 struct 
@@ -101,15 +102,47 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 		if (!skipSection[i])
 			section_data_size += sections[i].header.SizeOfRawData;
 
+	BYTE *section_data = new BYTE[section_data_size];
+	// handle sections
+	for (int i = 0; i < sections.size(); i++) if (!skipSection[i])
+	{
+		// copy section data to newSectionData
+		memcpy(section_data, sections[i].data.get(), sections[i].header.SizeOfRawData);
+		section_data += sections[i].header.SizeOfRawData;
+	}
+	// restore original address
+	section_data -= section_data_size;
+	// get compress config
+	Config c_config = get_config(argc, argv);
+	// compression buffer
+	BYTE *c_buffer = new BYTE[getBufferSize(section_data_size)];
+	// compress data
+	DWORD c_size = compress(c_buffer, section_data, section_data_size, c_config.lazy_match, c_config.max_chain);
+	/*
+	// write data to file
+	FILE *f_shell = fopen("unpac.bin", "wb");
+	fwrite(section_data, section_data_size, 1, f_shell);
+	fclose(f_shell);
+	f_shell = fopen("pac.bin", "wb");
+	fwrite(c_buffer, c_size, 1, f_shell);
+	fclose(f_shell);
+	*/
+	// release section_data
+	delete[] section_data;
+
+	// fill NULL in tail for aligned
+	*(DWORD*)(c_buffer + c_size) = 0;
+	DWORD aligned_c_size = (c_size + 3) / 4 * 4;
+
 	// calculate new_section_size
 	size_t new_section_size = sizeof(PEInfo)
 		+ sizeof(SectionInfo)*packNumberOfSections
-		+ section_data_size
+		+ aligned_c_size
 		+ sizeof(IAT)
 		+ shell_size
 		+ sizeof(shell_loader);
 
-	// add section ".packer"
+	// add packer section
 	pe.addSection((BYTE*)PACKER_SECTION_NAME,
 		new_section_size,
 		new_section_size,
@@ -120,11 +153,19 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	SectionInfo *sectionInfo = (SectionInfo*)(peInfo + 1);
 	BYTE *newSectionData = (BYTE*)(sectionInfo + packNumberOfSections);
 
+	// copy compressed data
+	memcpy(newSectionData, c_buffer, aligned_c_size);
+	newSectionData += aligned_c_size;
+
+	// release c_buffer
+	delete[] c_buffer;
+
 	// fill peInfo
 	peInfo->ImageBase = ImageBase;
 	peInfo->AddressOfEntryPoint = nt_header.OptionalHeader.AddressOfEntryPoint;
 	peInfo->IIDVirtualAddress = nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	peInfo->NumberOfSections = packNumberOfSections;
+	peInfo->UncompressSize = section_data_size;
 
 	// handle sections
 	for (int i = 0, j = 0; i < sections.size() - 1; i++)if (!skipSection[i])
@@ -135,8 +176,8 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 		j++;
 
 		// copy section data to newSectionData
-		memcpy(newSectionData, sections[i].data.get(), sections[i].header.SizeOfRawData);
-		newSectionData += sections[i].header.SizeOfRawData;
+		//memcpy(newSectionData, sections[i].data.get(), sections[i].header.SizeOfRawData);
+		//newSectionData += sections[i].header.SizeOfRawData;
 
 		// set the section be writable
 		sections[i].header.Characteristics |= IMAGE_SCN_MEM_WRITE;

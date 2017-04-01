@@ -17,6 +17,7 @@ struct PEInfo
 	DWORD LoadLibraryA;
 	DWORD GetProcAddress;
 	DWORD IIDVirtualAddress;
+	DWORD UncompressSize;
 	struct
 	{
 #include "shell_data.h"

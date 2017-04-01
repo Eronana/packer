@@ -145,12 +145,25 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\compressor\bitstream.h" />
+    <ClInclude Include="..\compressor\compressor.h" />
+    <ClInclude Include="..\compressor\huffman.h" />
+    <ClInclude Include="..\compressor\lz77.h" />
+    <ClInclude Include="..\compressor\lzhash.h" />
+    <ClInclude Include="..\compressor\utils.h" />
     <ClInclude Include="packer.h" />
     <ClInclude Include="PE.h" />
     <ClInclude Include="shell.h" />
     <ClInclude Include="shell_data.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\compressor\bitstream.cpp" />
+    <ClCompile Include="..\compressor\compressor.cpp" />
+    <ClCompile Include="..\compressor\config.cpp" />
+    <ClCompile Include="..\compressor\huffman.cpp" />
+    <ClCompile Include="..\compressor\lz77.cpp" />
+    <ClCompile Include="..\compressor\lzhash.cpp" />
+    <ClCompile Include="..\compressor\utils.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="packer.cpp" />
     <ClCompile Include="PE.cpp" />
