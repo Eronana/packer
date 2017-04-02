@@ -2,6 +2,17 @@
 
 #include "windows.h"
 #define DEFINE_STRING(NAME,STR) char NAME[sizeof(STR)]=STR
+#define PEINFO_FIELD(NAME) DWORD NAME;
+#define DEFINE_SHELL_API_FUNC(NAME) decltype(&NAME) NAME = *(decltype(NAME)*)peInfo.NAME;
+#define DEFINE_SHELL_API() API_LIST(DEFINE_SHELL_API_FUNC)
+
+#define API_LIST_BEGIN
+#define API_LIST_END 
+#define API_LIST(T) \
+API_LIST_BEGIN \
+T(LoadLibraryA)\
+T(GetProcAddress)\
+API_LIST_END
 
 struct SectionInfo
 {
@@ -14,10 +25,11 @@ struct PEInfo
 	DWORD ImageBase;
 	DWORD AddressOfEntryPoint;
 	DWORD NumberOfSections;
-	DWORD LoadLibraryA;
-	DWORD GetProcAddress;
 	DWORD IIDVirtualAddress;
 	DWORD UncompressSize;
+
+	// IMPORT API
+	API_LIST(PEINFO_FIELD)
 	struct
 	{
 #include "shell_data.h"

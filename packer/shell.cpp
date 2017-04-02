@@ -19,10 +19,9 @@ DWORD __stdcall shell_main(DWORD pPeInfo)
 	decltype(peInfo.data) &data = peInfo.data;
 
 	// get addresses of LoadLibraryA and GetProcess
-	decltype(&LoadLibraryA) _LoadLibraryA;
-	decltype(&GetProcAddress) _GetProcAddress;
-	_LoadLibraryA = *(decltype(_LoadLibraryA)*)peInfo.LoadLibraryA;
-	_GetProcAddress = *(decltype(_GetProcAddress)*)peInfo.GetProcAddress;
+	// define API
+	DEFINE_SHELL_API()
+
 
 	// restore sections
 	for (int i = 0; i < peInfo.NumberOfSections; i++)
@@ -39,7 +38,7 @@ DWORD __stdcall shell_main(DWORD pPeInfo)
 		if (!RealFirstThunk)break;
 
 		char *DllName = (char*)(peInfo.ImageBase + IID->Name);
-		HMODULE hModule = _LoadLibraryA(DllName);
+		HMODULE hModule = LoadLibraryA(DllName);
 		if (!hModule)continue;
 
 		DWORD *OriginalFirstThunk = (DWORD*)(peInfo.ImageBase + RealFirstThunk);
@@ -49,14 +48,14 @@ DWORD __stdcall shell_main(DWORD pPeInfo)
 			DWORD ProcName;
 			if (OriginalFirstThunk[i] & IMAGE_ORDINAL_FLAG)ProcName = IMAGE_ORDINAL(OriginalFirstThunk[i]);
 			else ProcName = peInfo.ImageBase + OriginalFirstThunk[i] + 2;
-			FirstThunk[i] = (DWORD)_GetProcAddress(hModule, (LPCSTR)ProcName);
+			FirstThunk[i] = (DWORD)GetProcAddress(hModule, (LPCSTR)ProcName);
 		}
 	}
 	
 	// show a message box
-	HMODULE hModule = _LoadLibraryA(data.user32);
+	HMODULE hModule = LoadLibraryA(data.user32);
 	decltype(&MessageBoxA) MyMessageBoxA;
-	MyMessageBoxA = (decltype(MyMessageBoxA))_GetProcAddress(hModule, data.MessageBoxA);
+	MyMessageBoxA = (decltype(MyMessageBoxA))GetProcAddress(hModule, data.MessageBoxA);
 	MyMessageBoxA(NULL, data.content, data.title, NULL);
 
 	// return oep

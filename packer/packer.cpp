@@ -3,7 +3,7 @@
 #include "../compressor/compressor.h"
 
 // new IAT
-struct 
+struct IAT_TYPE
 {
 	// only one IID
 	IMAGE_IMPORT_DESCRIPTOR IID = {};
@@ -15,18 +15,10 @@ struct
 	DEFINE_STRING(DllName, "kernel32.dll");
 
 	// INT(IAT) end by NULL
-	DWORD IAT[2 + 1];
+	DWORD IAT[API_SIZE() + 1] = { API_OFFSET() };
+
 	// two necessary functions
-	struct
-	{
-		WORD Hint = NULL;
-		DEFINE_STRING(name, "LoadLibraryA");
-	}LoadLibraryA;
-	struct
-	{
-		WORD Hint = NULL;
-		DEFINE_STRING(name, "GetProcAddress");
-	}GetProcAddress;
+	IAT_FIELD()
 }IAT;
 
 BYTE shell_loader[] = {
@@ -196,10 +188,13 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	// fill IAT and the necessary function addresses
 	IAT.IID.Name = (BYTE*)&IAT.DllName - (BYTE*)&IAT + iat_va;
 	IAT.IID.FirstThunk = (BYTE*)&IAT.IAT - (BYTE*)&IAT + iat_va;
-	IAT.IAT[0] = (BYTE*)&IAT.LoadLibraryA - (BYTE*)&IAT + iat_va;
-	IAT.IAT[1] = (BYTE*)&IAT.GetProcAddress - (BYTE*)&IAT + iat_va;
-	peInfo->LoadLibraryA = ImageBase + IAT.IID.FirstThunk;
-	peInfo->GetProcAddress = ImageBase + IAT.IID.FirstThunk + sizeof(DWORD);
+
+	// fix address and fill API address
+	for (int i = 0; i < SIZEOF(IAT.IAT) - 1; i++)
+	{
+		IAT.IAT[i] += iat_va;
+		(&peInfo->LoadLibraryA)[i] = ImageBase + IAT.IID.FirstThunk + sizeof(DWORD)*i;
+	}
 
 	// copy IAT
 	memcpy(newSectionData, &IAT, sizeof(IAT));
@@ -210,16 +205,16 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	newSectionData += shell_size;
 
 	// fill peInfo address
-	DWORD *shell_push_call_offset = (DWORD*)(shell_loader + 2);
+	DWORD *shell_push_call_offset = (DWORD*)(shell_loader + 2); // 2 is PUSHAD and PUSH
 	*shell_push_call_offset = ImageBase + new_section_rva;
 	// fill shell_main address
-	shell_push_call_offset = (DWORD*)((BYTE*)shell_push_call_offset + 5);
-	*shell_push_call_offset = 0xffffffff - shell_size - 10;
+	shell_push_call_offset = (DWORD*)((BYTE*)shell_push_call_offset + 5); // 6 is PUSH xxx
+	*shell_push_call_offset = 0xffffffff - shell_size - 10; // 10 is PUSHAD, PUSH xxx and CALL xxx
 
 	// copy shell_loader
 	memcpy(newSectionData, shell_loader, sizeof(shell_loader));
 
-	// set new ep
+	// calculate new ep
 	DWORD new_ep = new_section_size - sizeof(shell_loader) + new_section_rva;
 
 	PackResult result = {
@@ -228,11 +223,12 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 		new_ep + ImageBase
 	};
 
+	// set new ep
 	nt_header.OptionalHeader.AddressOfEntryPoint = new_ep;
 
 	// set IAT
 	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = iat_va;
-	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = sizeof(IAT.IID) * 2;
+	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = sizeof(IAT.IID) * 2; //IID and DUMMY_IID
 	pe.save(out);
 
 	return result;
