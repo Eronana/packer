@@ -54,7 +54,7 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	pe.load(in);
 
 	// try to wipe reloc
-	if (!pe.wipeReloc())THROW("wipe reloc failed");
+	pe.wipeReloc();
 
 
 	auto &nt_header = pe.getNtHeader();
