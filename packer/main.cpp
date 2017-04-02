@@ -27,16 +27,24 @@ size_t getFileSize(const char *file)
 int usage(char *s)
 {
 	printf("Usage: %s a.exe [options]\n", s);
-	puts("options:");
-	printf("  level: compression level. 0 for store, %lu for highest\n", config_count - 1);
-	printf("         compression ratio. default is %d.\n", DEFAULT_LEVEL);
-	printf("  lazy : set max lazy match, default is %d.\n", config[DEFAULT_LEVEL].lazy_match);
-	printf("  chain: set max length of find in hash chain, default is %d.\n", config[DEFAULT_LEVEL].max_chain);
-	puts("notice: lazy and chain will be ignored if you setted level.");
+	puts("Options:");
+	printf("  -level: compression level. 0 for store, %lu for highest\n", config_count - 1);
+	printf("          compression ratio. default is %d.\n", DEFAULT_LEVEL);
+	printf("  -lazy : set max lazy match, default is %d.\n", config[DEFAULT_LEVEL].lazy_match);
+	printf("  -chain: set max length of find in hash chain, default is %d.\n\n", config[DEFAULT_LEVEL].max_chain);
+	puts("Notice: lazy and chain will be ignored if you setted level.");
 	return 1;
+}
+void header()
+{
+	puts("[ Packer ]");
+	puts("A win32 exe packer");
+	puts("Homepage: https://github.com/Eronana/packer");
+	puts("-------------------------------------------");
 }
 int main(int argc, char **argv)
 {
+	header();
 	if (argc < 2)return usage(argv[0]);
 	char *in = argv[1];
 	char out[256];
