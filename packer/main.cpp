@@ -10,11 +10,9 @@ void getOutFile(const char *in, char *out)
 	if (!strcmp(in + slen - 4, ".exe"))
 	{
 		sprintf(out, "%s.exe", in);
-		out[slen - 3] = 'o';
-		out[slen - 2] = 'u';
-		out[slen - 1] = 't';
+		strcpy(out + slen - 3, "packed.exe");
 	}
-	else sprintf(out, "%s.out.exe", in);
+	else sprintf(out, "%s.packed.exe", in);
 }
 
 size_t getFileSize(const char *file)
@@ -41,7 +39,7 @@ int main(int argc, char **argv)
 {
 	if (argc < 2)return usage(argv[0]);
 	char *in = argv[1];
-	char out[100];
+	char out[256];
 	getOutFile(in, out);
 	try
 	{
