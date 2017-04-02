@@ -2,6 +2,7 @@
 #include <cstring>
 #include "packer.h"
 #include "windows.h"
+#include "../compressor/utils.h"
 
 void getOutFile(const char *in, char *out)
 {
@@ -27,7 +28,13 @@ size_t getFileSize(const char *file)
 
 int usage(char *s)
 {
-	printf("Usage: %s a.exe\n", s);
+	printf("Usage: %s a.exe [options]\n", s);
+	puts("options:");
+	printf("  level: compression level. 0 for store, %lu for highest\n", config_count - 1);
+	printf("         compression ratio. default is %d.\n", DEFAULT_LEVEL);
+	printf("  lazy : set max lazy match, default is %d.\n", config[DEFAULT_LEVEL].lazy_match);
+	printf("  chain: set max length of find in hash chain, default is %d.\n", config[DEFAULT_LEVEL].max_chain);
+	puts("notice: lazy and chain will be ignored if you setted level.");
 	return 1;
 }
 int main(int argc, char **argv)
