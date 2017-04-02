@@ -1,4 +1,7 @@
 #include "shell.h"
+#include "../compressor/uncompressor.h"
+#include "../compressor/compressor.h"
+
 
 /*
  * VS won't optimize naked function,
@@ -18,17 +21,105 @@ DWORD __stdcall shell_main(DWORD pPeInfo)
 	// set shell data
 	decltype(peInfo.data) &data = peInfo.data;
 
-	// get addresses of LoadLibraryA and GetProcess
 	// define API
-	DEFINE_SHELL_API()
+	DEFINE_SHELL_API();
+	/*
+	// show a message box
+	HMODULE hModule = LoadLibraryA(data.user32);
+	decltype(&MessageBoxA) MyMessageBoxA;
+	MyMessageBoxA = (decltype(MyMessageBoxA))GetProcAddress(hModule, data.MessageBoxA);
+	MyMessageBoxA(NULL, data.content, data.title, NULL);
+	*/
+	// uncompress
+#define VALLOC(SIZE) VirtualAlloc(NULL, SIZE, MEM_COMMIT, PAGE_READWRITE)
+#define VFREE(ADDR) VirtualFree(ADDR, 0, MEM_RELEASE)
+#define newHNode() (hNodes[node_cnt].value=-1,hNodes[node_cnt].child[0]=hNodes[node_cnt].child[1]=NULL,hNodes+node_cnt++)
+	HNode *hNodes = (HNode*)VALLOC(peInfo.NodeTotal*sizeof(HNode));
+	int node_cnt = 0;
+	BYTE *src = section_data;
 
+	WORD tree_size = *(WORD*)src;
+	src += 2;
+	WORD len_size_size = *(WORD*)src;
+	src += 2;
+	DWORD d_buf_size = *(DWORD*)src;
+	src += 4;
+	DWORD l_buf_size = *(DWORD*)src;
+	src += 4;
+	WORD *tree = (WORD*)src;
+	src += tree_size*sizeof(tree[0]);
+	LenSizeType *len_size = (LenSizeType*)src;
+	src += len_size_size*sizeof(len_size[0]);
+	BYTE *bit_stream = src;
 
+	HNode *huffman = newHNode();
+	int code = 0, last_len = 0;
+	for (int i = 0, a = 0; i<len_size_size; i++)
+	{
+		int len = len_size[i].len;
+		int size = len_size[i].size;
+		code <<= (len - last_len);
+		last_len = len;
+		// rebuild buffman tree
+		while(size--)
+		{
+			HNode *node = huffman;
+			for (int j = len - 1; ~j; j--)
+			{
+				int v = !!(code&(1 << j));
+				if (!node->child[v])node->child[v] = newHNode();
+				node = node->child[v];
+			}
+			node->value = tree[a++];
+			code++;
+		}
+	}
+
+	WORD *d_buf = (WORD*)VALLOC(sizeof(WORD)*d_buf_size);
+	BYTE *l_buf = (BYTE*)VALLOC(l_buf_size);
+
+	int byte_count = 0;
+	for (int i = 0; i<d_buf_size; i++)
+	{
+		HNode *node = huffman;
+		for (; node->value == -1; byte_count++)node = node->child[!!(bit_stream[byte_count / 8] & (1 << (7 - byte_count % 8)))];
+		d_buf[i] = node->value;
+	}
+	for (int i = 0; i<l_buf_size; i++)
+	{
+		HNode *node = huffman;
+		for (; node->value == -1; byte_count++)node = node->child[!!(bit_stream[byte_count / 8] & (1 << (7 - byte_count % 8)))];
+		l_buf[i] = node->value;
+	}
+	VFREE(hNodes);
+	
+	section_data = (BYTE*)VALLOC(peInfo.UncompressSize);
+	// unlz77
+	int x = 0;
+	int next = 0;
+	for (int i = 0; i<d_buf_size; i++)
+	{
+		int dis = d_buf[i] - 256;
+		if (dis<0) section_data[next++] = d_buf[i];
+		else
+		{
+			BYTE *buf = section_data + next - dis;
+			for (int j = 0; j<l_buf[x] + MIN_REPEAT_LENGTH; j++)section_data[next++] = buf[j];
+			x++;
+		}
+	}
+
+	VFREE(l_buf);
+	VFREE(d_buf);
+	
 	// restore sections
 	for (int i = 0; i < peInfo.NumberOfSections; i++)
 	{
 		BYTE *data = (BYTE*)(peInfo.ImageBase + sections[i].VirtualAddress);
 		for (int j = 0; j < sections[i].SizeOfRawData; j++)data[j] = *section_data++;
 	}
+
+	VFREE(section_data);
 
 	// resotre original IAT
 	for(IMAGE_IMPORT_DESCRIPTOR *IID = (IMAGE_IMPORT_DESCRIPTOR*)(peInfo.IIDVirtualAddress + peInfo.ImageBase);;IID++)
@@ -52,12 +143,6 @@ DWORD __stdcall shell_main(DWORD pPeInfo)
 		}
 	}
 	
-	// show a message box
-	HMODULE hModule = LoadLibraryA(data.user32);
-	decltype(&MessageBoxA) MyMessageBoxA;
-	MyMessageBoxA = (decltype(MyMessageBoxA))GetProcAddress(hModule, data.MessageBoxA);
-	MyMessageBoxA(NULL, data.content, data.title, NULL);
-
 	// return oep
 	return peInfo.ImageBase + peInfo.AddressOfEntryPoint;
 }

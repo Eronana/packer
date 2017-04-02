@@ -150,6 +150,7 @@
     <ClInclude Include="..\compressor\huffman.h" />
     <ClInclude Include="..\compressor\lz77.h" />
     <ClInclude Include="..\compressor\lzhash.h" />
+    <ClInclude Include="..\compressor\uncompressor.h" />
     <ClInclude Include="..\compressor\utils.h" />
     <ClInclude Include="packer.h" />
     <ClInclude Include="PE.h" />
@@ -163,6 +164,7 @@
     <ClCompile Include="..\compressor\huffman.cpp" />
     <ClCompile Include="..\compressor\lz77.cpp" />
     <ClCompile Include="..\compressor\lzhash.cpp" />
+    <ClCompile Include="..\compressor\uncompressor.cpp" />
     <ClCompile Include="..\compressor\utils.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="packer.cpp" />

@@ -109,22 +109,30 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	// compression buffer
 	BYTE *c_buffer = new BYTE[getBufferSize(section_data_size)];
 	// compress data
-	DWORD c_size = compress(c_buffer, section_data, section_data_size, c_config.lazy_match, c_config.max_chain);
+	auto c_result = compress(c_buffer, section_data, section_data_size, c_config.lazy_match, c_config.max_chain);
+	
 	/*
 	// write data to file
 	FILE *f_shell = fopen("unpac.bin", "wb");
 	fwrite(section_data, section_data_size, 1, f_shell);
 	fclose(f_shell);
 	f_shell = fopen("pac.bin", "wb");
-	fwrite(c_buffer, c_size, 1, f_shell);
+	fwrite(c_buffer, c_result.compressed_size, 1, f_shell);
 	fclose(f_shell);
+	BYTE *x_buffer = new BYTE[section_data_size];
+	uncompress(x_buffer, c_buffer);
+	f_shell = fopen("depac.bin", "wb");
+	fwrite(x_buffer, section_data_size, 1, f_shell);
+	fclose(f_shell);
+	delete[] x_buffer;
 	*/
+
 	// release section_data
 	delete[] section_data;
 
 	// fill NULL in tail for aligned
-	*(DWORD*)(c_buffer + c_size) = 0;
-	DWORD aligned_c_size = (c_size + 3) / 4 * 4;
+	*(DWORD*)(c_buffer + c_result.compressed_size) = 0;
+	DWORD aligned_c_size = (c_result.compressed_size + 3) / 4 * 4;
 
 	// calculate new_section_size
 	size_t new_section_size = sizeof(PEInfo)
@@ -157,6 +165,7 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	peInfo->AddressOfEntryPoint = nt_header.OptionalHeader.AddressOfEntryPoint;
 	peInfo->IIDVirtualAddress = nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	peInfo->NumberOfSections = packNumberOfSections;
+	peInfo->NodeTotal = c_result.node_total;
 	peInfo->UncompressSize = section_data_size;
 
 	// handle sections
@@ -230,6 +239,5 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = iat_va;
 	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = sizeof(IAT.IID) * 2; //IID and DUMMY_IID
 	pe.save(out);
-
 	return result;
 }

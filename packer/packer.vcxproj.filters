@@ -51,6 +51,9 @@
     <ClCompile Include="..\compressor\utils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\compressor\uncompressor.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PE.h">
@@ -81,6 +84,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\compressor\utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\compressor\uncompressor.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

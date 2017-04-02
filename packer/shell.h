@@ -12,6 +12,8 @@
 API_LIST_BEGIN \
 T(LoadLibraryA)\
 T(GetProcAddress)\
+T(VirtualAlloc)\
+T(VirtualFree)\
 API_LIST_END
 
 struct SectionInfo
@@ -26,6 +28,7 @@ struct PEInfo
 	DWORD AddressOfEntryPoint;
 	DWORD NumberOfSections;
 	DWORD IIDVirtualAddress;
+	DWORD NodeTotal;
 	DWORD UncompressSize;
 
 	// IMPORT API
