@@ -41,7 +41,7 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	while (*(s_end - 1) == 0xCC)s_end--;
 	// calculate shell_size
 	size_t shell_size = s_end - s_begin;
-	
+
 	/*
 	// write shell_main to file
 	FILE *f_shell = fopen("shellcode.bin", "wb");
@@ -110,7 +110,7 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	BYTE *c_buffer = new BYTE[getBufferSize(section_data_size)];
 	// compress data
 	auto c_result = compress(c_buffer, section_data, section_data_size, c_config.lazy_match, c_config.max_chain);
-	
+
 	/*
 	// write data to file
 	FILE *f_shell = fopen("unpac.bin", "wb");
@@ -127,6 +127,18 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	delete[] x_buffer;
 	*/
 
+	DWORD &load_config_va = nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG].VirtualAddress;
+	DWORD load_config_size = nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG].Size;
+
+	BYTE *load_config_data = NULL;
+	if (load_config_size&&load_config_va)
+	{
+		load_config_data = new BYTE[load_config_size];
+		BYTE *original = (BYTE*)pe.getDataByRva(load_config_va);
+		memcpy(load_config_data, original, load_config_size);
+		ZeroMemory(original, load_config_size);
+	}
+
 	// release section_data
 	delete[] section_data;
 
@@ -138,6 +150,7 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	size_t new_section_size = sizeof(PEInfo)
 		+ sizeof(SectionInfo)*packNumberOfSections
 		+ aligned_c_size
+		+ load_config_size
 		+ sizeof(IAT)
 		+ shell_size
 		+ sizeof(shell_loader);
@@ -168,6 +181,8 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	peInfo->NodeTotal = c_result.node_total;
 	peInfo->UncompressSize = section_data_size;
 
+
+
 	// handle sections
 	for (int i = 0, j = 0; i < sections.size() - 1; i++)if (!skipSection[i])
 	{
@@ -175,10 +190,6 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 		sectionInfo[j].VirtualAddress = sections[i].header.VirtualAddress;
 		sectionInfo[j].SizeOfRawData = sections[i].header.SizeOfRawData;
 		j++;
-
-		// copy section data to newSectionData
-		//memcpy(newSectionData, sections[i].data.get(), sections[i].header.SizeOfRawData);
-		//newSectionData += sections[i].header.SizeOfRawData;
 
 		// set the section be writable
 		sections[i].header.Characteristics |= IMAGE_SCN_MEM_WRITE;
@@ -193,6 +204,18 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 
 
 	DWORD new_section_rva = sections.rbegin()->header.VirtualAddress;
+
+	// handle the load directory,
+	// to avoid MSVC compiled program crash when an exception occurs
+	if (load_config_data)
+	{
+		memcpy(newSectionData, load_config_data, load_config_size);
+		load_config_va = new_section_rva + newSectionData - (BYTE*)peInfo;
+		newSectionData += load_config_size;
+		delete[] load_config_data;
+	}
+
+
 	DWORD iat_va = new_section_rva + newSectionData - (BYTE*)peInfo;
 	// fill IAT and the necessary function addresses
 	IAT.IID.Name = (BYTE*)&IAT.DllName - (BYTE*)&IAT + iat_va;
@@ -208,6 +231,11 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	// copy IAT
 	memcpy(newSectionData, &IAT, sizeof(IAT));
 	newSectionData += sizeof(IAT);
+	// set IAT
+	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = iat_va;
+	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = sizeof(IAT.IID) * 2; //IID and DUMMY_IID
+
+
 
 	// copy shell_main
 	memcpy(newSectionData, s_begin, shell_size);
@@ -235,9 +263,7 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	// set new ep
 	nt_header.OptionalHeader.AddressOfEntryPoint = new_ep;
 
-	// set IAT
-	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = iat_va;
-	nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = sizeof(IAT.IID) * 2; //IID and DUMMY_IID
+	// save
 	pe.save(out);
 	return result;
 }
