@@ -2,6 +2,7 @@
 
 #include "windows.h"
 #define DEFINE_STRING(NAME,STR) char NAME[sizeof(STR)]=STR
+#define DEFINE_DWORD(NAME,VAL) DWORD NAME=VAL
 #define PEINFO_FIELD(NAME) DWORD NAME;
 #define DEFINE_SHELL_API_FUNC(NAME) decltype(&NAME) NAME = *(decltype(NAME)*)peInfo.NAME;
 #define DEFINE_SHELL_API() API_LIST(DEFINE_SHELL_API_FUNC)
