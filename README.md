@@ -11,6 +11,9 @@ You can use it to pack any 32-bit exe file.
 ## Compressor
 This project use [compressor](https://github.com/Eronana/compressor) to compress data to reduce exe file iexe
 
+## Extension
+Another branch [selfvalid](https://github.com/Eronana/packer/tree/selfvalid) with self-validation function that showns how to extend this very basic packer.
+
 ## Usage
 Just run `packer a.exe`.
 
