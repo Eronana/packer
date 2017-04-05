@@ -3,6 +3,9 @@
 #include "../compressor/compressor.h"
 
 
+#define VALLOC(SIZE) VirtualAlloc(NULL, SIZE, MEM_COMMIT, PAGE_READWRITE)
+#define VFREE(ADDR) VirtualFree(ADDR, 0, MEM_RELEASE)
+
 /*
  * VS won't optimize naked function,
  * so use normal function to get optimized code
@@ -23,16 +26,27 @@ DWORD __stdcall shell_main(DWORD pPeInfo)
 
 	// define API
 	DEFINE_SHELL_API();
-	/*
-	// show a message box
-	HMODULE hModule = LoadLibraryA(data.user32);
-	decltype(&MessageBoxA) MyMessageBoxA;
-	MyMessageBoxA = (decltype(MyMessageBoxA))GetProcAddress(hModule, data.MessageBoxA);
-	MyMessageBoxA(NULL, data.content, data.title, NULL);
-	*/
+	
+	// self validate
+	auto sBuffer = (LPSTR)VALLOC(512);
+	GetModuleFileNameA(NULL, sBuffer, 512);
+	HANDLE hFile = CreateFileA(sBuffer, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	VFREE(sBuffer);
+	DWORD chksum = 0, dwRead;
+	for (DWORD v; ReadFile(hFile, &v, sizeof(DWORD), &dwRead, NULL) && dwRead == sizeof(DWORD); chksum ^= v);
+	CloseHandle(hFile);
+	if (chksum)
+	{
+		// validation failed
+		// dynamic load user32.MessageBoxA
+		HMODULE hModule = LoadLibraryA(data.user32);
+		decltype(&MessageBoxA) MessageBoxA = (decltype(MessageBoxA))GetProcAddress(hModule, data.MessageBoxA);
+		// show a message box
+		MessageBoxA(NULL, data.content, data.title, MB_ICONERROR);
+	}
+	
+	
 	// uncompress
-#define VALLOC(SIZE) VirtualAlloc(NULL, SIZE, MEM_COMMIT, PAGE_READWRITE)
-#define VFREE(ADDR) VirtualFree(ADDR, 0, MEM_RELEASE)
 #define newHNode() (hNodes[node_cnt].value=-1,hNodes[node_cnt].child[0]=hNodes[node_cnt].child[1]=NULL,hNodes+node_cnt++)
 	HNode *hNodes = (HNode*)VALLOC(peInfo.NodeTotal*sizeof(HNode));
 	int node_cnt = 0;

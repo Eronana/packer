@@ -162,7 +162,8 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 		IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE);
 
 	// calculate the address of each part
-	PEInfo *peInfo = new(pe.getSections().rbegin()->data.get()) PEInfo;
+	auto &newSection = *pe.getSections().rbegin();
+	PEInfo *peInfo = new(newSection.data.get()) PEInfo;
 	SectionInfo *sectionInfo = (SectionInfo*)(peInfo + 1);
 	BYTE *newSectionData = (BYTE*)(sectionInfo + packNumberOfSections);
 
@@ -203,7 +204,7 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	}
 
 
-	DWORD new_section_rva = sections.rbegin()->header.VirtualAddress;
+	DWORD new_section_rva = newSection.header.VirtualAddress;
 
 	// handle the load directory,
 	// to avoid MSVC compiled program crash when an exception occurs
@@ -265,5 +266,13 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 
 	// save
 	pe.save(out);
+
+	// calculate xor sum
+	DWORD chksum = 0;
+	FILE *fp = fopen(out, "rb+");
+	for (DWORD v; fread(&v, sizeof(DWORD), 1, fp); chksum ^= v);
+	fseek(fp, newSection.header.PointerToRawData + offsetof(PEInfo, data.chksum), SEEK_SET);
+	fwrite(&chksum, sizeof(DWORD), 1, fp);
+	fclose(fp);
 	return result;
 }

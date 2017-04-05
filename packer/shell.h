@@ -15,6 +15,10 @@ T(LoadLibraryA)\
 T(GetProcAddress)\
 T(VirtualAlloc)\
 T(VirtualFree)\
+T(GetModuleFileNameA)\
+T(CreateFileA)\
+T(ReadFile)\
+T(CloseHandle)\
 API_LIST_END
 
 struct SectionInfo
