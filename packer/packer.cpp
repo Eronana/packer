@@ -53,9 +53,9 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	PE pe;
 	pe.load(in);
 
-	// try to wipe reloc
+	// try to wipe reloc and bound import
 	pe.wipeReloc();
-
+	pe.wipeBoundImport();
 
 	auto &nt_header = pe.getNtHeader();
 	auto &sections = pe.getSections();

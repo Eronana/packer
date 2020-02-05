@@ -152,6 +152,12 @@ bool PE::wipeReloc()
 	return true;
 }
 
+void PE::wipeBoundImport()
+{
+	auto &boundImport = nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT];
+	boundImport.VirtualAddress = boundImport.Size = 0;
+}
+
 void PE::setSizeOfImage()
 {
 	nt_header.OptionalHeader.SizeOfImage = getNextSectionRva();

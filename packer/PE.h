@@ -34,6 +34,7 @@ public:
 	void load(const char *filename);
 	void save(const char *filename);
 	bool wipeReloc();
+	void wipeBoundImport();
 	void clear();
 	void addSection(BYTE name[], DWORD VirtualSize, DWORD SizeOfRawData,DWORD Characteristics);
 	bool removeSection(DWORD VirtualSize);
