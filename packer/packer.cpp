@@ -98,8 +98,9 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	for (int i = 0; i < sections.size(); i++) if (!skipSection[i])
 	{
 		// copy section data to newSectionData
-		memcpy(section_data, sections[i].data.get(), sections[i].header.SizeOfRawData);
-		section_data += sections[i].header.SizeOfRawData;
+		auto size = sections[i].header.SizeOfRawData;
+		memcpy(section_data, sections[i].data.get(), size);
+		section_data += size;
 	}
 	// restore original address
 	section_data -= section_data_size;
