@@ -80,8 +80,7 @@ PackResult pack(char *in, char *out, int argc = 0, char **argv = NULL)
 	// skip non-data section
 	for (int i = 0; i < NumberOfSections; i++)
 	{
-
-		if (!sections[i].header.SizeOfRawData)
+		if (!sections[i].header.SizeOfRawData && !skipSection[i])
 		{
 			packNumberOfSections--;
 			skipSection[i] = true;
