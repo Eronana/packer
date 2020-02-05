@@ -240,6 +240,7 @@ bool PE::removeSection(DWORD VirtualAddress)
 
 void PE::compactRawData(DWORD PointerToRawData, DWORD SizeOfRawData)
 {
+	SizeOfRawData = align(SizeOfRawData, 0x200);
 	for (auto &sec : sections)
 		if (sec.header.PointerToRawData > PointerToRawData)
 			sec.header.PointerToRawData -= SizeOfRawData;
